@@ -174,7 +174,6 @@ class _LibraryViewState extends State<LibraryView> {
         return PopScope(
           canPop: !busy,
           child: SafeArea(
-            bottom: false,
             child: Scaffold(
               body: Stack(
                 children: [

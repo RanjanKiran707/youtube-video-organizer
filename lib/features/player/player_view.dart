@@ -43,6 +43,7 @@ class _PlayerViewState extends State<PlayerView> {
   String? _loadedRowId; // the saved video that is loaded in the player
   PlayerState? _lastState;
   bool _errorHandled = false;
+  final GlobalKey _currentRowKey = GlobalKey();
   String? _lastErrorName; // shown in debug builds to help diagnose setup errors
 
   /// Errors that mean this particular video cannot be played in an embed.
@@ -73,6 +74,8 @@ class _PlayerViewState extends State<PlayerView> {
     _playerSubscription = _player.stream.listen(_onPlayerValue);
     ctrl.queue.addListener(_loadCurrent);
     ctrl.index.addListener(_loadCurrent);
+    ctrl.queue.addListener(_scrollToCurrent);
+    ctrl.index.addListener(_scrollToCurrent);
   }
 
   /// Loads the current video into the player when it changes.
@@ -120,6 +123,20 @@ class _PlayerViewState extends State<PlayerView> {
     _lastState = value.playerState;
   }
 
+  /// Keeps the playing video in view in the queue list.
+  void _scrollToCurrent() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final context = _currentRowKey.currentContext;
+      if (!mounted || context == null) return;
+      Scrollable.ensureVisible(
+        context,
+        alignment: 0.3,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
   void _retry() {
     ctrl.clearPlayerError();
     _loadedRowId = null;
@@ -144,6 +161,8 @@ class _PlayerViewState extends State<PlayerView> {
   void dispose() {
     ctrl.queue.removeListener(_loadCurrent);
     ctrl.index.removeListener(_loadCurrent);
+    ctrl.queue.removeListener(_scrollToCurrent);
+    ctrl.index.removeListener(_scrollToCurrent);
     _playerSubscription?.cancel();
     _player.close();
     _playing.dispose();
@@ -219,7 +238,6 @@ class _PlayerViewState extends State<PlayerView> {
       defaultOrientations: const [DeviceOrientation.portraitUp],
       autoFullScreen: false,
       builder: (context, player) => SafeArea(
-        bottom: false,
         child: Scaffold(
           body: ObxMulti(
             listenables: [
@@ -326,7 +344,6 @@ class _PlayerViewState extends State<PlayerView> {
     final blocked = ctrl.unplayable.value.contains(current.id);
     final finished = ctrl.finished.value;
     final folder = ctrl.folderName.value;
-    final upNext = [for (var i = index; i < queue.videos.length; i++) i];
 
     return Column(
       children: [
@@ -470,12 +487,13 @@ class _PlayerViewState extends State<PlayerView> {
             ],
           ),
         ),
-        SectionLabel('Up next · $folder'),
+        SectionLabel('Queue · $folder'),
         Expanded(
           child: ListView(
             children: dividedRows(context, [
-              for (final i in upNext)
+              for (var i = 0; i < queue.videos.length; i++)
                 VideoTile(
+                  key: i == index ? _currentRowKey : null,
                   video: queue.videos[i],
                   current: i == index,
                   subtitle: i == index
