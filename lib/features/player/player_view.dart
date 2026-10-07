@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import 'package:youtube_saver/core/di/app_dependencies.dart';
@@ -37,6 +38,7 @@ class _PlayerViewState extends State<PlayerView> {
   late final YoutubePlayerController _player;
   StreamSubscription<YoutubePlayerValue>? _playerSubscription;
   final ValueNotifier<bool> _playing = ValueNotifier(false);
+  final ValueNotifier<bool> _fullscreen = ValueNotifier(false);
 
   String? _loadedRowId; // the saved video that is loaded in the player
   PlayerState? _lastState;
@@ -89,6 +91,7 @@ class _PlayerViewState extends State<PlayerView> {
 
   void _onPlayerValue(YoutubePlayerValue value) {
     _playing.value = value.playerState == PlayerState.playing;
+    _fullscreen.value = value.fullScreenOption.enabled;
 
     final id = _loadedRowId;
     if (id == null) return;
@@ -142,6 +145,10 @@ class _PlayerViewState extends State<PlayerView> {
     _playerSubscription?.cancel();
     _player.close();
     _playing.dispose();
+    _fullscreen.dispose();
+    // Leaving while full screen must not leave the app in landscape.
+    SystemChrome.setPreferredOrientations(const [DeviceOrientation.portraitUp]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     ctrl.dispose();
     super.dispose();
   }
@@ -155,9 +162,26 @@ class _PlayerViewState extends State<PlayerView> {
 
   @override
   Widget build(BuildContext context) {
+    // Back leaves full screen first, then the screen.
+    return ObxValue<bool>(
+      listenable: _fullscreen,
+      builder: (fullscreen) => PopScope(
+        canPop: !fullscreen,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) _player.exitFullScreen();
+        },
+        child: _scaffold(),
+      ),
+    );
+  }
+
+  Widget _scaffold() {
     return YoutubePlayerScaffold(
       controller: _player,
       aspectRatio: 16 / 9,
+      // Portrait unless full screen. Rotating the phone does not enter it.
+      defaultOrientations: const [DeviceOrientation.portraitUp],
+      autoFullScreen: false,
       builder: (context, player) => SafeArea(
         bottom: false,
         child: Scaffold(
