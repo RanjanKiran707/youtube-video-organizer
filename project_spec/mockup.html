@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Playlist Saver – UI Mockup</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --surface: #f6f6f5;
+    --text: #111111;
+    --muted: #8a8a86;
+    --line: #e8e8e5;
+    --accent: #e5322d;
+    --on-accent: #ffffff;
+    --page: #ececea;
+    --thumb: #d9d9d5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #101010;
+      --surface: #1a1a1a;
+      --text: #f2f2f0;
+      --muted: #8c8c88;
+      --line: #262626;
+      --accent: #ff5a54;
+      --on-accent: #101010;
+      --page: #050505;
+      --thumb: #2c2c2c;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--page);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+    line-height: 1.4;
+    padding: 32px 16px 64px;
+  }
+  h1 { font-size: 18px; font-weight: 600; text-align: center; }
+  .sub { text-align: center; color: var(--muted); margin: 4px 0 32px; }
+  .board {
+    display: flex; flex-wrap: wrap; gap: 40px 28px; justify-content: center;
+  }
+  figure { width: 360px; }
+  figcaption { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+  figcaption b { color: var(--text); font-weight: 600; }
+
+  /* phone frame */
+  .phone {
+    position: relative; width: 360px; height: 720px; overflow: hidden;
+    background: var(--bg); border: 1px solid var(--line); border-radius: 28px;
+    display: flex; flex-direction: column;
+  }
+  .status { height: 28px; display: flex; justify-content: space-between; align-items: center;
+    padding: 0 20px; font-size: 11px; color: var(--muted); flex: none; }
+
+  /* top bar */
+  .bar { padding: 8px 20px 12px; flex: none; }
+  .crumb { color: var(--muted); font-size: 12px; }
+  .title { font-size: 24px; font-weight: 600; letter-spacing: -.02em; margin-top: 2px; }
+  .row-actions { display: flex; gap: 8px; margin-top: 12px; }
+
+  /* buttons */
+  .btn { border: 1px solid var(--line); background: none; color: var(--text);
+    border-radius: 999px; padding: 8px 16px; font: inherit; cursor: pointer; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
+  .btn.block { width: 100%; padding: 14px; border-radius: 14px; }
+
+  /* lists */
+  .list { flex: 1; overflow: hidden; }
+  .item { display: flex; align-items: center; gap: 14px; padding: 12px 20px; }
+  .item + .item { border-top: 1px solid var(--line); }
+  .item .meta { flex: 1; min-width: 0; }
+  .item .name { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item .desc { color: var(--muted); font-size: 12px; }
+  .item .more { color: var(--muted); letter-spacing: 2px; }
+  .section { padding: 14px 20px 4px; font-size: 11px; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--muted); }
+  .item.now { background: var(--surface); }
+  .item.now .name { color: var(--accent); }
+
+  .ico { width: 40px; height: 40px; border-radius: 10px; background: var(--surface);
+    display: grid; place-items: center; flex: none; color: var(--muted); }
+  .ico svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.6;
+    stroke-linecap: round; stroke-linejoin: round; }
+  .thumb { width: 72px; height: 40px; border-radius: 6px; background: var(--thumb); flex: none; position: relative; }
+  .thumb.big { width: 96px; height: 54px; }
+  .thumb i { position: absolute; right: 4px; bottom: 4px; font-style: normal; font-size: 9px;
+    background: #000a; color: #fff; padding: 1px 4px; border-radius: 3px; }
+
+  .fab { position: absolute; right: 20px; bottom: 24px; width: 52px; height: 52px; border-radius: 50%;
+    background: var(--accent); color: var(--on-accent); display: grid; place-items: center;
+    font-size: 26px; font-weight: 300; }
+
+  /* sheet + dialog */
+  .scrim { position: absolute; inset: 0; background: rgba(0,0,0,.45); }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--bg);
+    border-radius: 24px 24px 0 0; padding: 12px 0 20px; display: flex; flex-direction: column; top: 120px; }
+  .grab { width: 36px; height: 4px; border-radius: 2px; background: var(--line); margin: 0 auto 12px; }
+  .sheet .head { padding: 0 20px 12px; font-weight: 600; font-size: 16px; }
+  .shared { display: flex; gap: 12px; align-items: center; margin: 0 20px 8px; padding: 12px;
+    background: var(--surface); border-radius: 12px; }
+  .sheet .foot { padding: 12px 20px 0; border-top: 1px solid var(--line); }
+  .link { color: var(--accent); font-weight: 500; }
+  .dialog { position: absolute; left: 24px; right: 24px; top: 250px; background: var(--bg);
+    border-radius: 20px; padding: 20px; border: 1px solid var(--line); }
+  .dialog h3 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+  .field { border-bottom: 2px solid var(--accent); padding: 8px 0; margin-bottom: 20px; }
+  .dialog .acts { display: flex; justify-content: flex-end; gap: 8px; }
+
+  /* player */
+  .embed { aspect-ratio: 16/9; background: #000; position: relative; flex: none; display: grid; place-items: center; color: #fff; }
+  .play { width: 52px; height: 52px; border-radius: 50%; border: 1.5px solid #fff; display: grid; place-items: center; }
+  .play::after { content: ""; border-left: 14px solid #fff; border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent; margin-left: 4px; }
+  .progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: #fff3; }
+  .progress span { display: block; width: 38%; height: 100%; background: var(--accent); }
+  .pmeta { padding: 16px 20px 8px; flex: none; }
+  .pmeta .title { font-size: 18px; }
+  .ctrl { display: flex; align-items: center; justify-content: center; gap: 28px; padding: 8px 20px 12px; flex: none; }
+  .ctrl .c { width: 44px; height: 44px; display: grid; place-items: center; color: var(--text); font-size: 18px; }
+  .ctrl .c.main { background: var(--text); color: var(--bg); border-radius: 50%; width: 52px; height: 52px; }
+  .auto { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px;
+    border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); flex: none; }
+  .toggle { width: 36px; height: 20px; border-radius: 10px; background: var(--accent); position: relative; }
+  .toggle::after { content: ""; position: absolute; right: 2px; top: 2px; width: 16px; height: 16px;
+    border-radius: 50%; background: var(--on-accent); }
+
+  .err { text-align: center; padding: 0 28px; }
+  .err p { font-size: 13px; margin-bottom: 12px; color: #ddd; }
+  .err .btn { color: #fff; border-color: #fff6; }
+
+  .empty { flex: 1; display: grid; place-items: center; text-align: center; padding: 0 40px; color: var(--muted); }
+  .empty .ico { margin: 0 auto 16px; width: 56px; height: 56px; border-radius: 16px; }
+  .empty .ico svg { width: 26px; height: 26px; }
+  .empty h3 { color: var(--text); font-weight: 600; font-size: 16px; margin-bottom: 6px; }
+
+  .ytshare { padding: 8px 20px; color: var(--muted); }
+  .ytshare .thumb { width: 100%; height: 180px; border-radius: 12px; margin-top: 12px; }
+  .note { color: var(--muted); font-size: 12px; padding: 10px 20px; text-align: center; }
+</style>
+</head>
+<body>
+
+<h1>Playlist Saver</h1>
+<p class="sub">UI mockup · Android · 7 screens</p>
+
+<!-- reusable icons -->
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="folder-plus" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 10v6M9 13h6"/></symbol>
+  <symbol id="share" viewBox="0 0 24 24"><path d="M12 4v11M8 8l4-4 4 4M5 13v6h14v-6"/></symbol>
+  <symbol id="warn" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.5"/></symbol>
+</svg>
+
+<div class="board">
+
+  <!-- 1 Library -->
+  <figure>
+    <figcaption><b>1 · Library</b> — root, folders and videos</figcaption>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>● ● ●</span></div>
+      <div class="bar">
+        <div class="title">Library</div>
+      </div>
+      <div class="list">
+        <div class="item"><div class="ico"><svg><use href="#folder"/></svg></div><div class="meta"><div class="name">Music</div><div class="desc">12 videos · 2 folders</div></div><span class="more">⋮</span></div>
+        <div class="item"><div class="ico"><svg><use href="#folder"/></svg></div><div class="meta"><div class="name">Cooking</div><div class="desc">7 videos</div></div><span class="more">⋮</span></div>
+        <div class="item"><div class="ico"><svg><use href="#folder"/></svg></div><div class="meta"><div class="name">Learning</div><div class="desc">4 videos · 3 folders</div></div><span class="more">⋮</span></div>
+        <div class="section">Videos</div>
+        <div class="item"><div class="thumb"><i>12:04</i></div><div class="meta"><div class="name">How tides actually work</div><div class="desc">Veritasium</div></div><span class="more">⋮</span></div>
+        <div class="item"><div class="thumb"><i>8:31</i></div><div class="meta"><div class="name">Why sourdough fails</div><div class="desc">Kitchen Lab</div></div><span class="more">⋮</span></div>
+      </div>
+      <div class="fab">+</div>
+    </div>
+  </figure>
+
+  <!-- 2 Share target -> picker -->
+  <figure>
+    <figcaption><b>2 · Share → folder picker</b> — opens from YouTube's Share</figcaption>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>● ● ●</span></div>
+      <div class="ytshare">YouTube<div class="thumb"></div></div>
+      <div class="scrim"></div>
+      <div class="sheet">
+        <div class="grab"></div>
+        <div class="head">Save to…</div>
+        <div class="shared">
+          <div class="thumb big"></div>
+          <div class="meta"><div class="name" style="font-weight:500">How tides actually work</div><div class="desc" style="color:var(--muted);font-size:12px">Veritasium</div></div>
+        </div>
+        <div class="crumb" style="padding:8px 20px">Library › Learning</div>
+        <div class="list">
+          <div class="item"><div class="ico"><svg><use href="#folder"/></svg></div><div class="meta"><div class="name">Physics</div></div><span class="more">›</span></div>
+          <div class="item"><div class="ico"><svg><use href="#folder"/></svg></div><div class="meta"><div class="name">History</div></div><span class="more">›</span></div>
+          <div class="item"><div class="ico"><svg><use href="#folder"/></svg></div><div class="meta"><div class="name">Languages</div></div><span class="more">›</span></div>
+          <div class="item"><div class="ico"><svg><use href="#folder-plus"/></svg></div><div class="meta"><div class="name link">New folder</div></div></div>
+        </div>
+        <div class="foot"><button class="btn primary block">Save to Learning</button></div>
+      </div>
+    </div>
+  </figure>
+
+  <!-- 3 New folder dialog -->
+  <figure>
+    <figcaption><b>3 · New folder</b> — from picker or library</figcaption>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>● ● ●</span></div>
+      <div class="bar"><div class="crumb">Library</div><div class="title">Learning</div></div>
+      <div class="list">
+        <div class="item"><div class="ico"><svg><use href="#folder"/></svg></div><div class="meta"><div class="name">Physics</div></div></div>
+        <div class="item"><div class="ico"><svg><use href="#folder"/></svg></div><div class="meta"><div class="name">History</div></div></div>
+      </div>
+      <div class="scrim"></div>
+      <div class="dialog">
+        <h3>New folder</h3>
+        <div class="field">Chemistry</div>
+        <div class="acts"><button class="btn">Cancel</button><button class="btn primary">Create</button></div>
+      </div>
+    </div>
+  </figure>
+
+  <!-- 4 Folder view -->
+  <figure>
+    <figcaption><b>4 · Folder</b> — Play all queues direct videos only</figcaption>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>● ● ●</span></div>
+      <div class="bar">
+        <div class="crumb">Library › Learning</div>
+        <div class="title">Physics</div>
+        <div class="row-actions"><button class="btn primary">▶ Play all</button><button class="btn">Sort</button></div>
+      </div>
+      <div class="list">
+        <div class="item"><div class="ico"><svg><use href="#folder"/></svg></div><div class="meta"><div class="name">Quantum</div><div class="desc">3 videos</div></div><span class="more">⋮</span></div>
+        <div class="section">Videos · 4</div>
+        <div class="item"><div class="thumb"><i>12:04</i></div><div class="meta"><div class="name">How tides actually work</div><div class="desc">Veritasium</div></div><span class="more">⋮</span></div>
+        <div class="item"><div class="thumb"><i>21:15</i></div><div class="meta"><div class="name">The map of physics</div><div class="desc">Domain of Science</div></div><span class="more">⋮</span></div>
+        <div class="item"><div class="thumb"><i>9:48</i></div><div class="meta"><div class="name">What is entropy?</div><div class="desc">Veritasium</div></div><span class="more">⋮</span></div>
+        <div class="item"><div class="thumb"><i>15:02</i></div><div class="meta"><div class="name">Light is weird</div><div class="desc">PBS Space Time</div></div><span class="more">⋮</span></div>
+      </div>
+      <div class="fab">+</div>
+    </div>
+  </figure>
+
+  <!-- 5 Player -->
+  <figure>
+    <figcaption><b>5 · Player</b> — embed + up next; auto-advances on end</figcaption>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>● ● ●</span></div>
+      <div class="embed"><div class="play"></div><div class="progress"><span></span></div></div>
+      <div class="pmeta">
+        <div class="crumb">Physics</div>
+        <div class="title">How tides actually work</div>
+        <div class="desc" style="color:var(--muted);font-size:12px">Veritasium</div>
+      </div>
+      <div class="ctrl"><div class="c">⏮</div><div class="c main">❚❚</div><div class="c">⏭</div></div>
+      <div class="auto"><span>Auto-advance</span><div class="toggle"></div></div>
+      <div class="section">Up next · Physics</div>
+      <div class="list">
+        <div class="item now"><div class="thumb"><i>12:04</i></div><div class="meta"><div class="name">How tides actually work</div><div class="desc">Playing</div></div></div>
+        <div class="item"><div class="thumb"><i>21:15</i></div><div class="meta"><div class="name">The map of physics</div><div class="desc">Domain of Science</div></div></div>
+        <div class="item"><div class="thumb"><i>9:48</i></div><div class="meta"><div class="name">What is entropy?</div><div class="desc">Veritasium</div></div></div>
+      </div>
+    </div>
+  </figure>
+
+  <!-- 6 Embed blocked -->
+  <figure>
+    <figcaption><b>6 · Can't embed</b> — fallback; skipped automatically in queue</figcaption>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>● ● ●</span></div>
+      <div class="embed">
+        <div class="err">
+          <p>The owner has disabled playback in other apps.</p>
+          <button class="btn">Open in YouTube</button>
+        </div>
+      </div>
+      <div class="pmeta">
+        <div class="crumb">Physics</div>
+        <div class="title">The map of physics</div>
+        <div class="desc" style="color:var(--muted);font-size:12px">Domain of Science</div>
+      </div>
+      <div class="note">Skipping to the next video in 3s…</div>
+      <div class="auto"><span>Auto-advance</span><div class="toggle"></div></div>
+      <div class="section">Up next · Physics</div>
+      <div class="list">
+        <div class="item now"><div class="thumb"><i>21:15</i></div><div class="meta"><div class="name">The map of physics</div><div class="desc">Unavailable</div></div></div>
+        <div class="item"><div class="thumb"><i>9:48</i></div><div class="meta"><div class="name">What is entropy?</div><div class="desc">Veritasium</div></div></div>
+        <div class="item"><div class="thumb"><i>15:02</i></div><div class="meta"><div class="name">Light is weird</div><div class="desc">PBS Space Time</div></div></div>
+      </div>
+    </div>
+  </figure>
+
+  <!-- 7 Empty -->
+  <figure>
+    <figcaption><b>7 · Empty folder</b></figcaption>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>● ● ●</span></div>
+      <div class="bar"><div class="crumb">Library</div><div class="title">Cooking</div></div>
+      <div class="empty">
+        <div>
+          <div class="ico"><svg><use href="#share"/></svg></div>
+          <h3>Nothing here yet</h3>
+          <p>Share a video from YouTube and pick this folder to save it.</p>
+        </div>
+      </div>
+      <div class="fab">+</div>
+    </div>
+  </figure>
+
+  <!-- 8 End of queue -->
+  <figure>
+    <figcaption><b>Note</b> — end of folder (open question in spec)</figcaption>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>● ● ●</span></div>
+      <div class="embed"><div class="err"><p>Queue finished</p><button class="btn">↻ Replay folder</button></div></div>
+      <div class="pmeta">
+        <div class="crumb">Physics</div>
+        <div class="title">Light is weird</div>
+        <div class="desc" style="color:var(--muted);font-size:12px">Last video in this folder</div>
+      </div>
+      <div class="note">Mockup assumes playback stops at the end. Swap for loop if preferred.</div>
+    </div>
+  </figure>
+
+</div>
+</body>
+</html>
