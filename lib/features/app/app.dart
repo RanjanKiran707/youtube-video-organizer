@@ -94,7 +94,7 @@ class _YoutubeSaverAppState extends State<YoutubeSaverApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Youtube Saver',
+      title: 'YT Playlist',
       debugShowCheckedModeBanner: false,
       navigatorKey: _navigatorKey,
       scaffoldMessengerKey: _messengerKey,
