@@ -27,6 +27,10 @@ The screens use custom widgets built from the mockup's own tokens, not stock Mat
 - End of folder: playback stops and "Queue finished" is shown (the spec leaves this open).
 - A video that can't be embedded is marked, shows "Open in YouTube", and is skipped while auto-advance is on.
 
+## Player on a device
+- Playback in the embed failed on the phone with YouTube error 152/153 (no usable embed origin), which the package reports as `unknown`. The first version treated every error as "can't embed", so each video was skipped and the queue ended. Fixed by passing `origin: 'https://www.youtube-nocookie.com'` to `YoutubePlayerParams`, and by only marking and skipping on the real embed-restricted errors (100, 101, 105, 150). Any other error shows "The player couldn't start this video" with Try again and Open in YouTube.
+- Idea parked for later: downloading videos with `youtube_explode_dart` (needs a native player and goes against YouTube's terms). Not started.
+
 ## Known gaps
 - The player View is not widget-tested (it needs a WebView). The ViewModel is. It has not been run on a device, so the real YouTube error and ended events are unconfirmed.
 - The share preview shows the video's thumbnail and the shared text, not the title (the title is looked up when saving).

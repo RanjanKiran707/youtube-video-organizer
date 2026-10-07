@@ -46,6 +46,11 @@ class PlayerViewModel {
   /// True while an unplayable video waits to be skipped.
   final ValueNotifier<bool> skipping = ValueNotifier(false);
 
+  /// True when the player failed on the current video for a reason that says
+  /// nothing about the video itself (a player or setup error). Such a video is
+  /// not marked and not skipped, so one setup problem cannot clear the queue.
+  final ValueNotifier<bool> playerError = ValueNotifier(false);
+
   Timer? _skipTimer;
   bool _disposed = false;
 
@@ -92,6 +97,7 @@ class PlayerViewModel {
   void select(int i) {
     if (i < 0 || i >= _videos.length) return;
     _cancelSkip();
+    playerError.value = false;
     finished.value = false;
     index.value = i;
   }
@@ -108,9 +114,19 @@ class PlayerViewModel {
   /// Starts the folder again from its first video.
   void replay() {
     _cancelSkip();
+    playerError.value = false;
     finished.value = false;
     index.value = 0;
   }
+
+  /// The player failed on [videoId] for a reason that is not about the video
+  /// (for example a missing embed origin). Nothing is marked or skipped.
+  void onPlayerError(String videoId) {
+    if (current?.id != videoId) return;
+    playerError.value = true;
+  }
+
+  void clearPlayerError() => playerError.value = false;
 
   /// The player finished [videoId]. Ignored for any other video, so a late
   /// event cannot skip a video that is already playing.
@@ -150,6 +166,7 @@ class PlayerViewModel {
     if (next == null) {
       finished.value = true; // end of the folder: playback stops
     } else {
+      playerError.value = false;
       index.value = next;
     }
   }
@@ -170,5 +187,6 @@ class PlayerViewModel {
     finished.dispose();
     folderName.dispose();
     skipping.dispose();
+    playerError.dispose();
   }
 }

@@ -208,4 +208,46 @@ void main() {
       await pumpEventQueue(); // would throw if it wrote to a disposed notifier
     },
   );
+
+  test(
+    'a player error marks nothing, skips nothing and keeps the queue',
+    () async {
+      final vm = await create();
+
+      vm.onPlayerError('a');
+      await pumpEventQueue();
+
+      expect(vm.playerError.value, isTrue);
+      expect(vm.unplayable.value, isEmpty);
+      expect(vm.skipping.value, isFalse);
+      expect(vm.finished.value, isFalse);
+      expect(vm.current!.id, 'a');
+      vm.dispose();
+    },
+  );
+
+  test('a player error for another video is ignored', () async {
+    final vm = await create();
+
+    vm.onPlayerError('b');
+
+    expect(vm.playerError.value, isFalse);
+    vm.dispose();
+  });
+
+  test(
+    'the player error clears on retry and when another video is chosen',
+    () async {
+      final vm = await create();
+
+      vm.onPlayerError('a');
+      vm.clearPlayerError();
+      expect(vm.playerError.value, isFalse);
+
+      vm.onPlayerError('a');
+      vm.select(1);
+      expect(vm.playerError.value, isFalse);
+      vm.dispose();
+    },
+  );
 }

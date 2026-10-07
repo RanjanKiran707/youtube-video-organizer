@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
@@ -40,6 +41,15 @@ class _PlayerViewState extends State<PlayerView> {
   String? _loadedRowId; // the saved video that is loaded in the player
   PlayerState? _lastState;
   bool _errorHandled = false;
+  String? _lastErrorName; // shown in debug builds to help diagnose setup errors
+
+  /// Errors that mean this particular video cannot be played in an embed.
+  static const _embedRestricted = {
+    YoutubeError.notEmbeddable,
+    YoutubeError.sameAsNotEmbeddable,
+    YoutubeError.videoNotFound,
+    YoutubeError.cannotFindVideo,
+  };
 
   @override
   void initState() {
@@ -50,7 +60,11 @@ class _PlayerViewState extends State<PlayerView> {
       getFolderPath: AppDependencies.instance.getFolderPath,
     );
     _player = YoutubePlayerController(
-      params: const YoutubePlayerParams(showFullscreenButton: true),
+      params: const YoutubePlayerParams(
+        showFullscreenButton: true,
+        // YouTube refuses embeds (error 153) that carry no usable origin.
+        origin: 'https://www.youtube-nocookie.com',
+      ),
     );
     _playerSubscription = _player.stream.listen(_onPlayerValue);
     ctrl.queue.addListener(_loadCurrent);
@@ -82,7 +96,15 @@ class _PlayerViewState extends State<PlayerView> {
     if (value.hasError) {
       if (!_errorHandled) {
         _errorHandled = true;
-        ctrl.onUnplayable(id);
+        debugPrint('YouTube player error: ${value.error.name}');
+        _lastErrorName = value.error.name;
+        if (_embedRestricted.contains(value.error)) {
+          ctrl.onUnplayable(id);
+        } else {
+          // 152/153 (no embed origin), html5 and param errors are not about the
+          // video, so the video is not marked and the queue is not skipped.
+          ctrl.onPlayerError(id);
+        }
       }
       return;
     }
@@ -91,6 +113,12 @@ class _PlayerViewState extends State<PlayerView> {
       ctrl.onEnded(id);
     }
     _lastState = value.playerState;
+  }
+
+  void _retry() {
+    ctrl.clearPlayerError();
+    _loadedRowId = null;
+    _loadCurrent();
   }
 
   void _replay() {
@@ -140,6 +168,7 @@ class _PlayerViewState extends State<PlayerView> {
               ctrl.autoAdvance,
               ctrl.unplayable,
               ctrl.finished,
+              ctrl.playerError,
               ctrl.skipping,
               ctrl.folderName,
             ],
@@ -157,7 +186,13 @@ class _PlayerViewState extends State<PlayerView> {
   }
 
   /// The black area over the player for "can't embed" and "queue finished".
-  Widget _overlay(String message, String button, VoidCallback onPressed) {
+  Widget _overlay(
+    String message,
+    String button,
+    VoidCallback onPressed, {
+    String? secondButton,
+    VoidCallback? onSecondPressed,
+  }) {
     return ColoredBox(
       color: Colors.black,
       child: Center(
@@ -176,7 +211,28 @@ class _PlayerViewState extends State<PlayerView> {
                 ),
               ),
               const SizedBox(height: 12),
-              PillButton(label: button, onDark: true, onPressed: onPressed),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.center,
+                children: [
+                  PillButton(label: button, onDark: true, onPressed: onPressed),
+                  if (secondButton != null)
+                    PillButton(
+                      label: secondButton,
+                      onDark: true,
+                      onPressed: onSecondPressed,
+                    ),
+                ],
+              ),
+              if (kDebugMode && _lastErrorName != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    'debug: $_lastErrorName',
+                    style: const TextStyle(fontSize: 10, color: Colors.white38),
+                  ),
+                ),
             ],
           ),
         ),
@@ -227,6 +283,14 @@ class _PlayerViewState extends State<PlayerView> {
                   "This video can't be played in the app.",
                   'Open in YouTube',
                   () => _openInYoutube(current),
+                )
+              else if (ctrl.playerError.value)
+                _overlay(
+                  "The player couldn't start this video.",
+                  'Try again',
+                  _retry,
+                  secondButton: 'Open in YouTube',
+                  onSecondPressed: () => _openInYoutube(current),
                 ),
             ],
           ),
