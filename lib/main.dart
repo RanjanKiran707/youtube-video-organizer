@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:youtube_saver/core/di/app_dependencies.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await AppDependencies.init();
   runApp(const MyApp());
 }
 
