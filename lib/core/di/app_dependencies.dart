@@ -58,13 +58,22 @@ class AppDependencies {
     required this.getPlayQueue,
   });
 
-  static Future<void> init() async {
+  /// The repositories can be replaced, so tests run against fakes.
+  static Future<void> init({
+    FolderRepositoryInterface? folderRepository,
+    VideoRepositoryInterface? videoRepository,
+    VideoMetadataRepositoryInterface? metadataRepository,
+  }) async {
     // 1. Data layer (the only place that knows the real implementations).
-    final database = AppDatabase();
-    final FolderRepositoryInterface folders = FolderRepository(database);
-    final VideoRepositoryInterface videos = VideoRepository(database);
+    final database = (folderRepository == null || videoRepository == null)
+        ? AppDatabase()
+        : null;
+    final FolderRepositoryInterface folders =
+        folderRepository ?? FolderRepository(database!);
+    final VideoRepositoryInterface videos =
+        videoRepository ?? VideoRepository(database!);
     final VideoMetadataRepositoryInterface metadata =
-        VideoMetadataRepository(http.Client());
+        metadataRepository ?? VideoMetadataRepository(http.Client());
 
     // 2. Domain layer.
     instance = AppDependencies._(
