@@ -19,7 +19,9 @@ class ScreenHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
 
-    return Padding(
+    // Full width, so it stays left-aligned inside a centred Column too.
+    return Container(
+      width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
