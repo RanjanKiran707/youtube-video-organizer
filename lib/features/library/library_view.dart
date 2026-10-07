@@ -13,8 +13,12 @@ import 'package:youtube_saver/features/player/player_view.dart';
 import 'package:youtube_saver/features/player/player_view_model.dart';
 import 'package:youtube_saver/features/shared/failure_message.dart';
 import 'package:youtube_saver/features/shared/folder_browser_controller.dart';
+import 'package:youtube_saver/features/shared/widgets/app_dialog.dart';
+import 'package:youtube_saver/features/shared/widgets/app_row.dart';
 import 'package:youtube_saver/features/shared/widgets/breadcrumb.dart';
 import 'package:youtube_saver/features/shared/widgets/folder_tile.dart';
+import 'package:youtube_saver/features/shared/widgets/pill_button.dart';
+import 'package:youtube_saver/features/shared/widgets/screen_parts.dart';
 import 'package:youtube_saver/features/shared/widgets/text_input_dialog.dart';
 import 'package:youtube_saver/features/shared/widgets/video_tile.dart';
 
@@ -72,27 +76,6 @@ class _LibraryViewState extends State<LibraryView> {
     super.dispose();
   }
 
-  Future<bool> _confirmDelete(String title, String body) async {
-    final yes = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(body),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    return yes ?? false;
-  }
-
   Future<void> _onFolderAction(FolderItem folder, _ItemAction action) async {
     switch (action) {
       case _ItemAction.rename:
@@ -106,16 +89,19 @@ class _LibraryViewState extends State<LibraryView> {
         await FolderPickerView.open(
           context,
           FolderPickerBundle(
-            title: 'Move "${folder.name}"',
+            title: 'Move to…',
             confirmVerb: 'Move',
             excludeFolderId: folder.id,
             onConfirm: (destination) => ctrl.moveFolder(folder.id, destination),
           ),
         );
       case _ItemAction.delete:
-        final yes = await _confirmDelete(
-          'Delete "${folder.name}"?',
-          'The folder, its subfolders and all their videos are removed from the app. The videos stay on YouTube.',
+        final yes = await confirmDialog(
+          context,
+          title: 'Delete "${folder.name}"?',
+          body:
+              'The folder, its subfolders and all their videos are removed from the app. The videos stay on YouTube.',
+          confirmLabel: 'Delete',
         );
         if (yes) await ctrl.deleteFolder(folder.id);
     }
@@ -134,15 +120,17 @@ class _LibraryViewState extends State<LibraryView> {
         await FolderPickerView.open(
           context,
           FolderPickerBundle(
-            title: 'Move video',
+            title: 'Move to…',
             confirmVerb: 'Move',
             onConfirm: (destination) => ctrl.moveVideo(video.id, destination),
           ),
         );
       case _ItemAction.delete:
-        final yes = await _confirmDelete(
-          'Delete this video?',
-          'It is removed from this folder. It stays on YouTube.',
+        final yes = await confirmDialog(
+          context,
+          title: 'Delete this video?',
+          body: 'It is removed from this folder. It stays on YouTube.',
+          confirmLabel: 'Delete',
         );
         if (yes) await ctrl.deleteVideo(video.id);
     }
@@ -161,11 +149,17 @@ class _LibraryViewState extends State<LibraryView> {
   Widget _menu(void Function(_ItemAction) onSelected) {
     return PopupMenuButton<_ItemAction>(
       onSelected: onSelected,
+      padding: EdgeInsets.zero,
+      tooltip: 'More',
       itemBuilder: (_) => const [
         PopupMenuItem(value: _ItemAction.rename, child: Text('Rename')),
         PopupMenuItem(value: _ItemAction.move, child: Text('Move')),
         PopupMenuItem(value: _ItemAction.delete, child: Text('Delete')),
       ],
+      child: const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        child: MoreDots(),
+      ),
     );
   }
 
@@ -176,40 +170,44 @@ class _LibraryViewState extends State<LibraryView> {
       builder: () {
         final busy = ctrl.actionState.value.isLoading;
         final browser = ctrl.browser.state.value;
-        final title =
-            browser is ViewStateLoaded<FolderBrowserData> &&
-                browser.data.path.isNotEmpty
-            ? browser.data.path.last.name
-            : 'Library';
 
         return PopScope(
           canPop: !busy,
           child: Scaffold(
-            appBar: AppBar(
-              title: Text(title),
-              bottom: busy
-                  ? const PreferredSize(
-                      preferredSize: Size.fromHeight(2),
-                      child: LinearProgressIndicator(minHeight: 2),
-                    )
-                  : null,
-            ),
-            floatingActionButton: FloatingActionButton(
-              onPressed: busy
-                  ? null
-                  : () => NewFolderView.open(
-                      context,
-                      NewFolderBundle(parentId: widget.bundle.folderId),
+            body: SafeArea(
+              bottom: false,
+              child: Stack(
+                children: [
+                  AbsorbPointer(
+                    absorbing: busy,
+                    child: browser.when(
+                      loading: () =>
+                          const Center(child: CircularProgressIndicator()),
+                      error: (failure) =>
+                          Center(child: Text(messageFor(failure))),
+                      loaded: _content,
                     ),
-              tooltip: 'New folder',
-              child: const Icon(Icons.add),
-            ),
-            body: AbsorbPointer(
-              absorbing: busy,
-              child: browser.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (failure) => Center(child: Text(messageFor(failure))),
-                loaded: _body,
+                  ),
+                  if (busy)
+                    const Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: LinearProgressIndicator(minHeight: 2),
+                    ),
+                  Positioned(
+                    right: 20,
+                    bottom: 24,
+                    child: AppFab(
+                      onPressed: busy
+                          ? null
+                          : () => NewFolderView.open(
+                              context,
+                              NewFolderBundle(parentId: widget.bundle.folderId),
+                            ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -218,57 +216,70 @@ class _LibraryViewState extends State<LibraryView> {
     );
   }
 
-  Widget _body(FolderBrowserData data) {
+  Widget _content(FolderBrowserData data) {
     final contents = data.contents;
+    final inFolder = data.path.isNotEmpty;
+
+    final header = ScreenHeader(
+      title: inFolder ? data.path.last.name : 'Library',
+      crumb: inFolder
+          ? Breadcrumb(path: data.path.sublist(0, data.path.length - 1))
+          : null,
+      actions: contents.videos.isEmpty
+          ? null
+          : Row(
+              children: [
+                PillButton(
+                  label: 'Play all',
+                  icon: Icons.play_arrow_rounded,
+                  primary: true,
+                  onPressed: () => _play(null),
+                ),
+              ],
+            ),
+    );
 
     if (contents.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Text(
-            'Nothing here yet.\nShare a video from YouTube to save it, or tap + to add a folder.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+      return Column(
+        children: [
+          header,
+          const Expanded(
+            child: EmptyState(
+              heading: 'Nothing here yet',
+              text:
+                  'Share a video from YouTube and pick this folder to save it.',
             ),
           ),
-        ),
+        ],
       );
     }
 
     return ListView(
-      padding: const EdgeInsets.only(bottom: 88),
+      padding: const EdgeInsets.only(bottom: 100),
       children: [
-        if (data.path.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Breadcrumb(path: data.path),
-          ),
-        if (contents.videos.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: FilledButton.icon(
-                onPressed: () => _play(null),
-                icon: const Icon(Icons.play_arrow),
-                label: const Text('Play all'),
-              ),
+        header,
+        ...dividedRows(context, [
+          for (final folder in contents.folders)
+            FolderTile(
+              folder: folder,
+              onTap: () =>
+                  LibraryView.open(context, LibraryBundle(folderId: folder.id)),
+              trailing: _menu((a) => _onFolderAction(folder, a)),
             ),
+        ]),
+        if (contents.videos.isNotEmpty) ...[
+          SectionLabel(
+            inFolder ? 'Videos · ${contents.videos.length}' : 'Videos',
           ),
-        for (final folder in contents.folders)
-          FolderTile(
-            folder: folder,
-            onTap: () =>
-                LibraryView.open(context, LibraryBundle(folderId: folder.id)),
-            trailing: _menu((a) => _onFolderAction(folder, a)),
-          ),
-        for (final video in contents.videos)
-          VideoTile(
-            video: video,
-            onTap: () => _play(video.id),
-            trailing: _menu((a) => _onVideoAction(video, a)),
-          ),
+          ...dividedRows(context, [
+            for (final video in contents.videos)
+              VideoTile(
+                video: video,
+                onTap: () => _play(video.id),
+                trailing: _menu((a) => _onVideoAction(video, a)),
+              ),
+          ]),
+        ],
       ],
     );
   }

@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 import 'package:youtube_saver/core/di/app_dependencies.dart';
+import 'package:youtube_saver/core/theme/app_colors.dart';
 import 'package:youtube_saver/core/theme/app_theme.dart';
 import 'package:youtube_saver/domain/use_cases/business/save_shared_video/save_shared_video_argument_model.dart';
 import 'package:youtube_saver/domain/use_cases/business/save_shared_video/youtube_url_parser.dart';
@@ -63,21 +65,18 @@ class _YoutubeSaverAppState extends State<YoutubeSaverApp> {
     _pickerOpen = true;
 
     final saved = await navigator.push<bool>(
-      MaterialPageRoute(
-        fullscreenDialog: true,
-        builder: (_) => FolderPickerView(
-          bundle: FolderPickerBundle(
-            title: 'Save video',
-            confirmVerb: 'Save',
-            previewThumbnailUrl:
-                'https://i.ytimg.com/vi/$youtubeId/hqdefault.jpg',
-            previewText: text,
-            onConfirm: (folderId) => AppDependencies.instance.saveSharedVideo(
-              SaveSharedVideoArgumentModel(
-                videoId: const Uuid().v4(),
-                sharedText: text,
-                folderId: folderId,
-              ),
+      FolderPickerView.route(
+        FolderPickerBundle(
+          title: 'Save to…',
+          confirmVerb: 'Save',
+          previewThumbnailUrl:
+              'https://i.ytimg.com/vi/$youtubeId/hqdefault.jpg',
+          previewText: text,
+          onConfirm: (folderId) => AppDependencies.instance.saveSharedVideo(
+            SaveSharedVideoArgumentModel(
+              videoId: const Uuid().v4(),
+              sharedText: text,
+              folderId: folderId,
             ),
           ),
         ),
@@ -101,6 +100,20 @@ class _YoutubeSaverAppState extends State<YoutubeSaverApp> {
       scaffoldMessengerKey: _messengerKey,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
+      builder: (context, child) {
+        final dark = Theme.of(context).brightness == Brightness.dark;
+        return AnnotatedRegion<SystemUiOverlayStyle>(
+          value: SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: dark ? Brightness.light : Brightness.dark,
+            systemNavigationBarColor: context.colors.bg,
+            systemNavigationBarIconBrightness: dark
+                ? Brightness.light
+                : Brightness.dark,
+          ),
+          child: child!,
+        );
+      },
       home: const LibraryView(),
     );
   }

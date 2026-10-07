@@ -10,7 +10,15 @@ One View + ViewModel per screen (`lib/features/`). Designs: `project_spec/mockup
 | `player` (embed, up next, auto-advance, can't-embed fallback, queue end) | 5, 6, end note | `player/` | `test/features/player_view_model_test.dart` (ViewModel only) | Done, not run on a device |
 | `app` (theme, share listener, home = library) | n/a | `app/` | `widget_test.dart` (share flow) | Done |
 
-`flutter analyze`: no issues. `flutter test`: 95 passed. `flutter build apk --debug`: builds.
+`flutter analyze`: no issues. `flutter test`: 98 passed. `flutter build apk --debug`: builds.
+
+## Matching the mockup
+The screens use custom widgets built from the mockup's own tokens, not stock Material widgets (`AppBar`, `ListTile`, FAB, `AlertDialog`, buttons):
+- `core/theme/app_colors.dart`: the mockup's colour tokens (`--bg`, `--surface`, `--muted`, `--line`, `--accent`, ...), light and dark, read with `context.colors`.
+- `features/shared/widgets/`: `AppRow` (the `.item` row and `dividedRows`), `SectionLabel`, `PillButton`, `AppSwitch`, `AppDialog` + `UnderlineField`, `AppIcon` (the mockup's line icons, drawn from its SVG paths), `IconTile`, `ScreenHeader`, `AppFab`, `EmptyState`, `MoreDots`.
+- The folder picker is a bottom sheet (24px corners, grab handle, shared-video card, "New folder" row, full-width save button).
+- The player has no app bar: embed, crumb and title, previous / play-pause / next, the Auto-advance toggle, and "Up next · folder" from the current video on. "Can't play" and "Queue finished" (with "Replay folder") show over the embed, and "Skipping to the next video in 3s…" shows before an unplayable video is skipped.
+- Not in the app: the mockup's "Sort" button (no sort feature) and duration badges (durations are not stored, so none show).
 
 ## Notes
 - `features/shared/` holds what the screens share: `FolderBrowserController` (live folder contents + breadcrumb), `messageFor(Failure)`, and small widgets (folder and video tiles, breadcrumb, text dialog).

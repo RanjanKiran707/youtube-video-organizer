@@ -1,15 +1,19 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:youtube_saver/core/errors/failure.dart';
 import 'package:youtube_saver/core/utils/view_state.dart';
+import 'package:youtube_saver/domain/use_cases/ui/get_folder_path/get_folder_path_usecase.dart';
 import 'package:youtube_saver/domain/use_cases/ui/get_play_queue/get_play_queue_usecase.dart';
 import 'package:youtube_saver/features/player/player_view_model.dart';
 
+import '../fakes/fake_folder_repository.dart';
 import '../fakes/fake_video_repository.dart';
 
 void main() {
   late FakeVideoRepository videos;
+  late FakeFolderRepository folders;
 
   setUp(() {
+    folders = FakeFolderRepository()..add('f', null, 'Physics');
     videos = FakeVideoRepository()
       ..add('a', 'f')
       ..add('b', 'f')
@@ -21,6 +25,8 @@ void main() {
     final vm = PlayerViewModel(
       bundle: PlayerBundle(folderId: 'f', startVideoId: start),
       getPlayQueue: GetPlayQueueUsecase(videos),
+      getFolderPath: GetFolderPathUsecase(folders),
+      skipDelay: Duration.zero,
     );
     await pumpEventQueue();
     return vm;
@@ -96,8 +102,12 @@ void main() {
     final vm = await create();
 
     vm.onUnplayable('a');
+    expect(vm.skipping.value, isTrue);
+    expect(vm.current!.id, 'a'); // waits before moving on
+    await pumpEventQueue();
 
     expect(vm.unplayable.value, {'a'});
+    expect(vm.skipping.value, isFalse);
     expect(vm.current!.id, 'b');
     vm.dispose();
   });
@@ -116,12 +126,43 @@ void main() {
   test('auto-advance skips over videos already marked unplayable', () async {
     final vm = await create();
     vm.select(1);
-    vm.onUnplayable('b'); // moves on to c
+    vm.onUnplayable('b');
+    await pumpEventQueue(); // moves on to c
     vm.select(0);
 
     vm.onEnded('a');
 
     expect(vm.current!.id, 'c');
+    vm.dispose();
+  });
+
+  test('choosing a video while a skip is pending cancels the skip', () async {
+    final vm = await create();
+
+    vm.onUnplayable('a');
+    vm.select(2);
+    await pumpEventQueue();
+
+    expect(vm.current!.id, 'c');
+    expect(vm.skipping.value, isFalse);
+    vm.dispose();
+  });
+
+  test('replay starts again from the first video', () async {
+    final vm = await create(start: 'c');
+    vm.onEnded('c');
+
+    vm.replay();
+
+    expect(vm.current!.id, 'a');
+    expect(vm.finished.value, isFalse);
+    vm.dispose();
+  });
+
+  test('the folder name is loaded for the crumb', () async {
+    final vm = await create();
+
+    expect(vm.folderName.value, 'Physics');
     vm.dispose();
   });
 
@@ -159,6 +200,8 @@ void main() {
       final vm = PlayerViewModel(
         bundle: const PlayerBundle(folderId: 'f'),
         getPlayQueue: GetPlayQueueUsecase(videos),
+        getFolderPath: GetFolderPathUsecase(folders),
+        skipDelay: Duration.zero,
       );
       vm.dispose();
 

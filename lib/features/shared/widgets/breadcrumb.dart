@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:youtube_saver/core/theme/app_colors.dart';
 import 'package:youtube_saver/data/folder/folder_model.dart';
 
-/// "Library › Music › Rock". With [onTap], the segments can be tapped to jump
-/// to that folder (null = library root).
+/// The mockup's `.crumb`: "Library › Learning", 12px muted. With [onTap], the
+/// segments can be tapped to jump to that folder (null = library root).
 class Breadcrumb extends StatelessWidget {
   final List<FolderModel> path;
   final ValueChanged<String?>? onTap;
@@ -11,13 +12,16 @@ class Breadcrumb extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
-    final style = Theme.of(context).textTheme.bodySmall?.copyWith(color: muted);
+    final style = TextStyle(
+      fontSize: 12,
+      height: 1.4,
+      color: context.colors.muted,
+    );
 
     Widget segment(String text, String? folderId) => InkWell(
       onTap: onTap == null ? null : () => onTap!(folderId),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(vertical: 2),
         child: Text(text, style: style),
       ),
     );

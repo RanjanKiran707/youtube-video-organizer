@@ -1,63 +1,59 @@
 import 'package:flutter/material.dart';
+import 'package:youtube_saver/core/theme/app_colors.dart';
 
 /// Monochrome with one red accent, light and dark (see project_spec/mockup.html).
 class AppTheme {
   AppTheme._();
 
-  static final ThemeData light = _build(
-    const ColorScheme(
-      brightness: Brightness.light,
-      primary: Color(0xFFE5322D),
-      onPrimary: Color(0xFFFFFFFF),
-      secondary: Color(0xFFE5322D),
-      onSecondary: Color(0xFFFFFFFF),
-      error: Color(0xFFB3261E),
-      onError: Color(0xFFFFFFFF),
-      surface: Color(0xFFFFFFFF),
-      onSurface: Color(0xFF111111),
-      onSurfaceVariant: Color(0xFF8A8A86),
-      surfaceContainerHighest: Color(0xFFF6F6F5),
-      outlineVariant: Color(0xFFE8E8E5),
-    ),
-  );
+  static final ThemeData light = _build(Brightness.light, AppColors.light);
+  static final ThemeData dark = _build(Brightness.dark, AppColors.dark);
 
-  static final ThemeData dark = _build(
-    const ColorScheme(
-      brightness: Brightness.dark,
-      primary: Color(0xFFFF5A54),
-      onPrimary: Color(0xFF101010),
-      secondary: Color(0xFFFF5A54),
-      onSecondary: Color(0xFF101010),
-      error: Color(0xFFF2B8B5),
-      onError: Color(0xFF601410),
-      surface: Color(0xFF101010),
-      onSurface: Color(0xFFF2F2F0),
-      onSurfaceVariant: Color(0xFF8C8C88),
-      surfaceContainerHighest: Color(0xFF1A1A1A),
-      outlineVariant: Color(0xFF262626),
-    ),
-  );
+  static ThemeData _build(Brightness brightness, AppColors c) {
+    final scheme = ColorScheme(
+      brightness: brightness,
+      primary: c.accent,
+      onPrimary: c.onAccent,
+      secondary: c.accent,
+      onSecondary: c.onAccent,
+      error: c.accent,
+      onError: c.onAccent,
+      surface: c.bg,
+      onSurface: c.text,
+      onSurfaceVariant: c.muted,
+      surfaceContainerHighest: c.surface,
+      outlineVariant: c.line,
+    );
 
-  static ThemeData _build(ColorScheme scheme) => ThemeData(
-    useMaterial3: true,
-    colorScheme: scheme,
-    scaffoldBackgroundColor: scheme.surface,
-    dividerTheme: DividerThemeData(
-      color: scheme.outlineVariant,
-      space: 1,
-      thickness: 1,
-    ),
-    appBarTheme: AppBarTheme(
-      backgroundColor: scheme.surface,
-      foregroundColor: scheme.onSurface,
-      elevation: 0,
-      scrolledUnderElevation: 0,
-    ),
-    floatingActionButtonTheme: FloatingActionButtonThemeData(
-      backgroundColor: scheme.primary,
-      foregroundColor: scheme.onPrimary,
-      elevation: 0,
-      shape: const CircleBorder(),
-    ),
-  );
+    return ThemeData(
+      useMaterial3: true,
+      brightness: brightness,
+      colorScheme: scheme,
+      extensions: [c],
+      scaffoldBackgroundColor: c.bg,
+      canvasColor: c.bg,
+      dividerColor: c.line,
+      // The mockup is 14px / 1.4, in the system font.
+      textTheme: Typography.material2021(platform: TargetPlatform.android).black
+          .apply(fontSizeFactor: 1, bodyColor: c.text, displayColor: c.text)
+          .copyWith(
+            bodyMedium: TextStyle(fontSize: 14, height: 1.4, color: c.text),
+          ),
+      splashFactory: InkRipple.splashFactory,
+      popupMenuTheme: PopupMenuThemeData(
+        color: c.bg,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(color: c.line),
+        ),
+        textStyle: TextStyle(fontSize: 14, color: c.text),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: c.text,
+        contentTextStyle: TextStyle(color: c.bg, fontSize: 14),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    );
+  }
 }

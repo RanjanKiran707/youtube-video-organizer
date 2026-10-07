@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:youtube_saver/features/shared/widgets/app_dialog.dart';
+import 'package:youtube_saver/features/shared/widgets/pill_button.dart';
 
 /// Asks for one line of text. Returns the entered text, or null if cancelled.
 /// Used for the rename actions; the ViewModel validates the text.
@@ -47,22 +49,18 @@ class _TextInputDialogState extends State<TextInputDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(widget.title),
-      content: TextField(
+    return AppDialog(
+      title: widget.title,
+      content: UnderlineField(
         controller: _controller,
-        autofocus: true,
-        textInputAction: TextInputAction.done,
         onSubmitted: (value) => Navigator.pop(context, value),
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        TextButton(
+        PillButton(label: 'Cancel', onPressed: () => Navigator.pop(context)),
+        PillButton(
+          label: widget.confirmLabel,
+          primary: true,
           onPressed: () => Navigator.pop(context, _controller.text),
-          child: Text(widget.confirmLabel),
         ),
       ],
     );

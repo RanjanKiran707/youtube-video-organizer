@@ -4,12 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import 'package:youtube_saver/core/di/app_dependencies.dart';
+import 'package:youtube_saver/core/theme/app_colors.dart';
 import 'package:youtube_saver/core/utils/view_state.dart';
 import 'package:youtube_saver/core/widgets/obx_value.dart';
 import 'package:youtube_saver/data/video/video_model.dart';
 import 'package:youtube_saver/domain/use_cases/ui/get_play_queue/get_play_queue_return_model.dart';
 import 'package:youtube_saver/features/player/player_view_model.dart';
 import 'package:youtube_saver/features/shared/failure_message.dart';
+import 'package:youtube_saver/features/shared/widgets/app_row.dart';
+import 'package:youtube_saver/features/shared/widgets/app_switch.dart';
+import 'package:youtube_saver/features/shared/widgets/pill_button.dart';
 import 'package:youtube_saver/features/shared/widgets/video_tile.dart';
 
 class PlayerView extends StatefulWidget {
@@ -31,6 +35,7 @@ class _PlayerViewState extends State<PlayerView> {
   late final PlayerViewModel ctrl;
   late final YoutubePlayerController _player;
   StreamSubscription<YoutubePlayerValue>? _playerSubscription;
+  final ValueNotifier<bool> _playing = ValueNotifier(false);
 
   String? _loadedRowId; // the saved video that is loaded in the player
   PlayerState? _lastState;
@@ -42,6 +47,7 @@ class _PlayerViewState extends State<PlayerView> {
     ctrl = PlayerViewModel(
       bundle: widget.bundle,
       getPlayQueue: AppDependencies.instance.getPlayQueue,
+      getFolderPath: AppDependencies.instance.getFolderPath,
     );
     _player = YoutubePlayerController(
       params: const YoutubePlayerParams(showFullscreenButton: true),
@@ -68,6 +74,8 @@ class _PlayerViewState extends State<PlayerView> {
   }
 
   void _onPlayerValue(YoutubePlayerValue value) {
+    _playing.value = value.playerState == PlayerState.playing;
+
     final id = _loadedRowId;
     if (id == null) return;
 
@@ -85,12 +93,27 @@ class _PlayerViewState extends State<PlayerView> {
     _lastState = value.playerState;
   }
 
+  void _replay() {
+    ctrl.replay();
+    _loadedRowId = null; // the first video may be the one already loaded
+    _loadCurrent();
+  }
+
+  void _togglePlay() {
+    if (_playing.value) {
+      _player.pauseVideo();
+    } else {
+      _player.playVideo();
+    }
+  }
+
   @override
   void dispose() {
     ctrl.queue.removeListener(_loadCurrent);
     ctrl.index.removeListener(_loadCurrent);
     _playerSubscription?.cancel();
     _player.close();
+    _playing.dispose();
     ctrl.dispose();
     super.dispose();
   }
@@ -108,32 +131,86 @@ class _PlayerViewState extends State<PlayerView> {
       controller: _player,
       aspectRatio: 16 / 9,
       builder: (context, player) => Scaffold(
-        appBar: AppBar(title: const Text('Now playing')),
-        body: ObxMulti(
-          listenables: [
-            ctrl.queue,
-            ctrl.index,
-            ctrl.autoAdvance,
-            ctrl.unplayable,
-            ctrl.finished,
-          ],
-          builder: () => ctrl.queue.value.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (failure) => Center(child: Text(messageFor(failure))),
-            loaded: (queue) => queue.videos.isEmpty
-                ? const Center(child: Text('No videos in this folder.'))
-                : _body(player, queue),
+        body: SafeArea(
+          bottom: false,
+          child: ObxMulti(
+            listenables: [
+              ctrl.queue,
+              ctrl.index,
+              ctrl.autoAdvance,
+              ctrl.unplayable,
+              ctrl.finished,
+              ctrl.skipping,
+              ctrl.folderName,
+            ],
+            builder: () => ctrl.queue.value.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (failure) => Center(child: Text(messageFor(failure))),
+              loaded: (queue) => queue.videos.isEmpty
+                  ? const Center(child: Text('No videos in this folder.'))
+                  : _body(player, queue),
+            ),
           ),
         ),
       ),
     );
   }
 
+  /// The black area over the player for "can't embed" and "queue finished".
+  Widget _overlay(String message, String button, VoidCallback onPressed) {
+    return ColoredBox(
+      color: Colors.black,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 13,
+                  height: 1.4,
+                  color: Color(0xFFDDDDDD),
+                ),
+              ),
+              const SizedBox(height: 12),
+              PillButton(label: button, onDark: true, onPressed: onPressed),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _control(
+    IconData icon, {
+    required VoidCallback? onPressed,
+    String? tooltip,
+  }) {
+    final c = context.colors;
+    return Opacity(
+      opacity: onPressed == null ? 0.3 : 1,
+      child: IconButton(
+        tooltip: tooltip,
+        onPressed: onPressed,
+        iconSize: 24,
+        constraints: const BoxConstraints.tightFor(width: 44, height: 44),
+        padding: EdgeInsets.zero,
+        icon: Icon(icon, color: c.text),
+      ),
+    );
+  }
+
   Widget _body(Widget player, GetPlayQueueReturnModel queue) {
-    final scheme = Theme.of(context).colorScheme;
+    final c = context.colors;
     final index = ctrl.index.value;
     final current = queue.videos[index];
     final blocked = ctrl.unplayable.value.contains(current.id);
+    final finished = ctrl.finished.value;
+    final folder = ctrl.folderName.value;
+    final upNext = [for (var i = index; i < queue.videos.length; i++) i];
 
     return Column(
       children: [
@@ -143,112 +220,141 @@ class _PlayerViewState extends State<PlayerView> {
             fit: StackFit.expand,
             children: [
               player,
-              if (blocked)
-                ColoredBox(
-                  color: scheme.surfaceContainerHighest,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          "This video can't be played in the app.",
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 12),
-                        OutlinedButton(
-                          onPressed: () => _openInYoutube(current),
-                          child: const Text('Open in YouTube'),
-                        ),
-                      ],
-                    ),
-                  ),
+              if (finished)
+                _overlay('Queue finished', 'Replay folder', _replay)
+              else if (blocked)
+                _overlay(
+                  "This video can't be played in the app.",
+                  'Open in YouTube',
+                  () => _openInYoutube(current),
                 ),
             ],
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
           child: Align(
             alignment: Alignment.centerLeft,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  current.title,
-                  style: Theme.of(context).textTheme.titleMedium,
+                  folder,
+                  style: TextStyle(fontSize: 12, height: 1.4, color: c.muted),
                 ),
-                if (current.channelName.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    current.title,
+                    style: TextStyle(
+                      fontSize: 18,
+                      height: 1.4,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: -0.36,
+                      color: c.text,
+                    ),
+                  ),
+                ),
+                if (finished || current.channelName.isNotEmpty)
                   Text(
-                    current.channelName,
-                    style: TextStyle(color: scheme.onSurfaceVariant),
+                    finished
+                        ? 'Last video in this folder'
+                        : current.channelName,
+                    style: TextStyle(fontSize: 12, height: 1.4, color: c.muted),
                   ),
               ],
             ),
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              IconButton(
+              _control(
+                Icons.skip_previous_rounded,
                 tooltip: 'Previous',
                 onPressed: index > 0 ? ctrl.previous : null,
-                icon: const Icon(Icons.skip_previous),
               ),
-              IconButton(
+              const SizedBox(width: 28),
+              ObxValue<bool>(
+                listenable: _playing,
+                builder: (playing) => Material(
+                  color: c.text,
+                  shape: const CircleBorder(),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    onTap: _togglePlay,
+                    child: SizedBox(
+                      width: 52,
+                      height: 52,
+                      child: Icon(
+                        playing
+                            ? Icons.pause_rounded
+                            : Icons.play_arrow_rounded,
+                        color: c.bg,
+                        size: 26,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 28),
+              _control(
+                Icons.skip_next_rounded,
                 tooltip: 'Next',
                 onPressed: index < queue.videos.length - 1 ? ctrl.next : null,
-                icon: const Icon(Icons.skip_next),
               ),
-              const Spacer(),
-              const Text('Auto-advance'),
-              Switch(
+            ],
+          ),
+        ),
+        if (ctrl.skipping.value)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            child: Text(
+              'Skipping to the next video in ${ctrl.skipDelay.inSeconds}s…',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, height: 1.4, color: c.muted),
+            ),
+          ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          decoration: BoxDecoration(
+            border: Border.symmetric(horizontal: BorderSide(color: c.line)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Auto-advance',
+                style: TextStyle(fontSize: 14, height: 1.4, color: c.text),
+              ),
+              AppSwitch(
                 value: ctrl.autoAdvance.value,
                 onChanged: (_) => ctrl.toggleAutoAdvance(),
               ),
             ],
           ),
         ),
-        if (ctrl.finished.value)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Queue finished. That was the last video in this folder.',
-                style: TextStyle(color: scheme.onSurfaceVariant),
-              ),
-            ),
-          ),
-        const Divider(),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'UP NEXT',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: scheme.onSurfaceVariant,
-                letterSpacing: 1,
-              ),
-            ),
-          ),
-        ),
+        SectionLabel('Up next · $folder'),
         Expanded(
-          child: ListView.builder(
-            itemCount: queue.videos.length,
-            itemBuilder: (context, i) {
-              final video = queue.videos[i];
-              return VideoTile(
-                video: video,
-                current: i == index,
-                onTap: () => ctrl.select(i),
-                trailing: ctrl.unplayable.value.contains(video.id)
-                    ? const Icon(Icons.block, size: 18)
-                    : null,
-              );
-            },
+          child: ListView(
+            children: dividedRows(context, [
+              for (final i in upNext)
+                VideoTile(
+                  video: queue.videos[i],
+                  current: i == index,
+                  subtitle: i == index
+                      ? (blocked ? 'Unavailable' : 'Playing')
+                      : null,
+                  onTap: () => ctrl.select(i),
+                  trailing:
+                      i != index &&
+                          ctrl.unplayable.value.contains(queue.videos[i].id)
+                      ? RowGlyph('×')
+                      : null,
+                ),
+            ]),
           ),
         ),
       ],

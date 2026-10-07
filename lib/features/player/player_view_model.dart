@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:youtube_saver/core/errors/result.dart';
 import 'package:youtube_saver/core/utils/view_state.dart';
 import 'package:youtube_saver/data/video/video_model.dart';
+import 'package:youtube_saver/domain/use_cases/ui/get_folder_path/get_folder_path_usecase.dart';
 import 'package:youtube_saver/domain/use_cases/ui/get_play_queue/get_play_queue_return_model.dart';
 import 'package:youtube_saver/domain/use_cases/ui/get_play_queue/get_play_queue_usecase.dart';
 
@@ -17,6 +20,10 @@ class PlayerBundle {
 class PlayerViewModel {
   final PlayerBundle bundle;
   final GetPlayQueueUsecase _getPlayQueue;
+  final GetFolderPathUsecase _getFolderPath;
+
+  /// How long "Skipping to the next video…" shows before it moves on.
+  final Duration skipDelay;
 
   final ValueNotifier<ViewState<GetPlayQueueReturnModel>> queue = ValueNotifier(
     const ViewStateLoading(),
@@ -33,12 +40,22 @@ class PlayerViewModel {
   /// True after the last video ended or failed with nothing left to play.
   final ValueNotifier<bool> finished = ValueNotifier(false);
 
+  /// Name of the folder being played, for the crumb and the "Up next" label.
+  final ValueNotifier<String> folderName = ValueNotifier('Library');
+
+  /// True while an unplayable video waits to be skipped.
+  final ValueNotifier<bool> skipping = ValueNotifier(false);
+
+  Timer? _skipTimer;
   bool _disposed = false;
 
   PlayerViewModel({
     required this.bundle,
     required GetPlayQueueUsecase getPlayQueue,
-  }) : _getPlayQueue = getPlayQueue {
+    required GetFolderPathUsecase getFolderPath,
+    this.skipDelay = const Duration(seconds: 3),
+  }) : _getPlayQueue = getPlayQueue,
+       _getFolderPath = getFolderPath {
     _load();
   }
 
@@ -53,6 +70,12 @@ class PlayerViewModel {
   }
 
   Future<void> _load() async {
+    final path = await _getFolderPath(bundle.folderId);
+    if (_disposed) return;
+    if (path case Ok(value: final folders) when folders.isNotEmpty) {
+      folderName.value = folders.last.name;
+    }
+
     final result = await _getPlayQueue(bundle.folderId);
     if (_disposed) return;
 
@@ -68,6 +91,7 @@ class PlayerViewModel {
 
   void select(int i) {
     if (i < 0 || i >= _videos.length) return;
+    _cancelSkip();
     finished.value = false;
     index.value = i;
   }
@@ -76,7 +100,17 @@ class PlayerViewModel {
 
   void previous() => select(index.value - 1);
 
-  void toggleAutoAdvance() => autoAdvance.value = !autoAdvance.value;
+  void toggleAutoAdvance() {
+    autoAdvance.value = !autoAdvance.value;
+    if (!autoAdvance.value) _cancelSkip();
+  }
+
+  /// Starts the folder again from its first video.
+  void replay() {
+    _cancelSkip();
+    finished.value = false;
+    index.value = 0;
+  }
 
   /// The player finished [videoId]. Ignored for any other video, so a late
   /// event cannot skip a video that is already playing.
@@ -90,26 +124,51 @@ class PlayerViewModel {
   void onUnplayable(String videoId) {
     if (current?.id != videoId) return;
     unplayable.value = {...unplayable.value, videoId};
-    if (autoAdvance.value) _advance();
+    if (!autoAdvance.value) return;
+
+    if (_nextPlayable() == null) {
+      finished.value = true;
+      return;
+    }
+    skipping.value = true;
+    _skipTimer = Timer(skipDelay, () {
+      skipping.value = false;
+      _advance();
+    });
+  }
+
+  int? _nextPlayable() {
+    final videos = _videos;
+    for (var i = index.value + 1; i < videos.length; i++) {
+      if (!unplayable.value.contains(videos[i].id)) return i;
+    }
+    return null;
   }
 
   void _advance() {
-    final videos = _videos;
-    for (var i = index.value + 1; i < videos.length; i++) {
-      if (!unplayable.value.contains(videos[i].id)) {
-        index.value = i;
-        return;
-      }
+    final next = _nextPlayable();
+    if (next == null) {
+      finished.value = true; // end of the folder: playback stops
+    } else {
+      index.value = next;
     }
-    finished.value = true; // end of the folder: playback stops
+  }
+
+  void _cancelSkip() {
+    _skipTimer?.cancel();
+    _skipTimer = null;
+    skipping.value = false;
   }
 
   void dispose() {
     _disposed = true;
+    _skipTimer?.cancel();
     queue.dispose();
     index.dispose();
     autoAdvance.dispose();
     unplayable.dispose();
     finished.dispose();
+    folderName.dispose();
+    skipping.dispose();
   }
 }

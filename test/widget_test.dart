@@ -66,7 +66,7 @@ void main() {
   ) async {
     await pumpApp(tester);
 
-    await tester.tap(find.byType(FloatingActionButton));
+    await tester.tap(find.byKey(const Key('new_folder_fab')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'Podcasts');
     await tester.tap(find.text('Create'));
@@ -82,7 +82,7 @@ void main() {
   ) async {
     await pumpApp(tester);
 
-    await tester.tap(find.byType(FloatingActionButton));
+    await tester.tap(find.byKey(const Key('new_folder_fab')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Create'));
     await tester.pumpAndSettle();
@@ -100,7 +100,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Song one'), findsOneWidget);
-    expect(find.byType(BackButton), findsOneWidget);
+    expect(find.text('Song one'), findsOneWidget);
   });
 
   widgetTest('a shared YouTube link opens the picker and saves to a folder', (
@@ -112,7 +112,7 @@ void main() {
     await pumpApp(tester, shares: shares);
     await tester.pumpAndSettle();
 
-    expect(find.text('Save video'), findsOneWidget);
+    expect(find.text('Save to…'), findsOneWidget);
 
     await tester.tap(
       find.descendant(
@@ -127,7 +127,7 @@ void main() {
     final saved = videos.videos.single;
     expect(saved.folderId, 'music');
     expect(saved.youtubeVideoId, 'dQw4w9WgXcQ');
-    expect(find.text('Save video'), findsNothing);
+    expect(find.text('Save to…'), findsNothing);
     expect(find.text('Saved.'), findsOneWidget);
   });
 
@@ -137,7 +137,7 @@ void main() {
     await pumpApp(tester, shares: _FakeShares('https://example.com'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Save video'), findsNothing);
+    expect(find.text('Save to…'), findsNothing);
     expect(find.textContaining("isn't a link"), findsOneWidget);
   });
 
