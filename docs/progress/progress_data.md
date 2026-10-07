@@ -26,6 +26,9 @@ Models, repository interfaces and implementations, one folder per entity (`lib/d
 - Folder item counts for the library list ("12 videos · 2 folders") are not a repository method yet. The `list_folder_contents` use case computes them from `getChildren` and `getVideos`, and a count query can be added if it is slow.
 - Repositories are not yet created in `AppDependencies.init()`. They get wired together with the use cases in the domain step.
 
+- `INTERNET` permission added to the main `AndroidManifest.xml` (it was only in the debug and profile manifests, so release builds had no network for oEmbed or the player).
+- `reorderFolders` and `reorderVideos` update only the ids they are given. Checking that the list matches the current children exactly is done in the domain reorder use cases, not here.
+
 ## To do
 - Wire `AppDatabase`, the repositories and an `http.Client` in `AppDependencies.init()` (with the domain step).
 - `youtube_saver` Android: confirm the generated code builds in a release build (not yet run on a device).
