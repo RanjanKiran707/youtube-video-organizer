@@ -63,7 +63,9 @@ class _PlayerViewState extends State<PlayerView> {
     );
     _player = YoutubePlayerController(
       params: const YoutubePlayerParams(
-        showFullscreenButton: true,
+        // YouTube's own full screen button is hidden: inside a WebView it only
+        // fills the page and never rotates. The app draws its own button.
+        showFullscreenButton: false,
         // YouTube refuses embeds (error 153) that carry no usable origin.
         origin: 'https://www.youtube-nocookie.com',
       ),
@@ -170,7 +172,41 @@ class _PlayerViewState extends State<PlayerView> {
         onPopInvokedWithResult: (didPop, _) {
           if (!didPop) _player.exitFullScreen();
         },
-        child: _scaffold(),
+        child: Stack(
+          children: [
+            _scaffold(),
+            if (fullscreen)
+              Positioned(
+                top: 12,
+                right: 12,
+                child: SafeArea(
+                  child: _roundButton(
+                    Icons.fullscreen_exit_rounded,
+                    'Exit full screen',
+                    _player.exitFullScreen,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// A round translucent button that sits on the video.
+  Widget _roundButton(IconData icon, String tooltip, VoidCallback onPressed) {
+    return Material(
+      type: MaterialType.transparency,
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Color(0x66000000),
+          shape: BoxShape.circle,
+        ),
+        child: IconButton(
+          tooltip: tooltip,
+          onPressed: onPressed,
+          icon: Icon(icon, color: Colors.white),
+        ),
       ),
     );
   }
@@ -315,6 +351,16 @@ class _PlayerViewState extends State<PlayerView> {
                   _retry,
                   secondButton: 'Open in YouTube',
                   onSecondPressed: () => _openInYoutube(current),
+                ),
+              if (!finished && !blocked && !ctrl.playerError.value)
+                Positioned(
+                  right: 4,
+                  bottom: 4,
+                  child: _roundButton(
+                    Icons.fullscreen_rounded,
+                    'Full screen',
+                    _player.enterFullScreen,
+                  ),
                 ),
             ],
           ),
