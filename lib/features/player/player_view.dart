@@ -130,10 +130,10 @@ class _PlayerViewState extends State<PlayerView> {
     return YoutubePlayerScaffold(
       controller: _player,
       aspectRatio: 16 / 9,
-      builder: (context, player) => Scaffold(
-        body: SafeArea(
-          bottom: false,
-          child: ObxMulti(
+      builder: (context, player) => SafeArea(
+        bottom: false,
+        child: Scaffold(
+          body: ObxMulti(
             listenables: [
               ctrl.queue,
               ctrl.index,
