@@ -6,9 +6,7 @@ An Android app for saving YouTube videos into your own folders. Share a video fr
 
 ## Demo
 
-![Demo: share a video from YouTube, save it to a new folder and play it](docs/demo.gif)
-
-[Watch the full-quality video](docs/demo.mp4)
+https://github.com/user-attachments/assets/07e2abb0-2934-483a-b241-6c7d1ac70970
 
 Open a video in YouTube, share it to YT Playlist, create a folder and save it there, then play it from the folder. The scripts that record it are in [scripts/demo](scripts/demo/README.md).
 
