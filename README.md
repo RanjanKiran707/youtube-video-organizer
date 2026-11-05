@@ -20,9 +20,9 @@ An Android application that allows you to organize YouTube videos into custom ne
 
 ## 🎬 Demo
 
-![Demo: share a video from YouTube, save it to a new folder and play it](docs/demo.gif)
+https://github.com/user-attachments/assets/07e2abb0-2934-483a-b241-6c7d1ac70970
 
-*Share a video from YouTube, pick a folder, and play it directly in the app. [Watch the full-quality video](docs/demo.mp4).*
+*Share a video from YouTube, pick a folder, and play it directly in the app. Full-quality video demo in [docs/demo.mp4](docs/demo.mp4).*
 
 ---
 
