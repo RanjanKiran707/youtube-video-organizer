@@ -40,7 +40,17 @@ class Videos extends Table {
 class AppDatabase extends _$AppDatabase {
   /// Pass an executor in tests (for example an in-memory database).
   AppDatabase([QueryExecutor? executor])
-      : super(executor ?? driftDatabase(name: 'youtube_saver'));
+      : super(
+          executor ??
+              driftDatabase(
+                name: 'youtube_saver',
+                native: const DriftNativeOptions(shareAcrossIsolates: true),
+                web: DriftWebOptions(
+                  sqlite3Wasm: Uri.parse('sqlite3.wasm'),
+                  driftWorker: Uri.parse('drift_worker.js'),
+                ),
+              ),
+        );
 
   @override
   int get schemaVersion => 1;
