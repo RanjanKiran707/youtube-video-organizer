@@ -1,4 +1,8 @@
+# Firebase cache
+.firebase/
+
 # Miscellaneous
+test.html
 *.class
 *.log
 *.pyc
