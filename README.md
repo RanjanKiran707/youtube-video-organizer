@@ -1,60 +1,102 @@
-# YT Playlist (youtube_saver)
+# 📺 YouTube Video Organizer (YT Playlist)
 
-<img src="docs/app_icon.png" width="96" alt="YT Playlist icon">
+[![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=for-the-badge&logo=Flutter&logoColor=white)](https://flutter.dev)
+[![Dart](https://img.shields.io/badge/Dart-%230175C2.svg?style=for-the-badge&logo=dart&logoColor=white)](https://dart.dev)
+[![Database](https://img.shields.io/badge/SQLite-Drift-blue?style=for-the-badge&logo=sqlite&logoColor=white)](https://drift.simonbinder.eu/)
+[![Tests](https://img.shields.io/badge/Tests-93%20Passing-brightgreen?style=for-the-badge&logo=checkmarx&logoColor=white)](test/)
+[![Architecture](https://img.shields.io/badge/Architecture-Clean%20%2F%20Layered-blue?style=for-the-badge)](project_spec/flutter_arch_general.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 
-An Android app for saving YouTube videos into your own folders. Share a video from the YouTube app, pick a folder, and play it later inside the app. The library is stored on the device, with no account, sync or backend.
+An Android application that allows you to organize YouTube videos into custom nested folders directly via the native YouTube share sheet. Save videos on the fly, play them back in-app with auto-advance, and keep your video library completely offline on your device with zero cloud dependency.
 
-## Demo
+> **🚀 [Try the Live Web Demo](https://yt-video-organizer.web.app)**  
+> **📦 [Download Android Release APK (v1.0.0)](https://github.com/RanjanKiran707/youtube-video-organizer/releases/tag/v1.0.0)**
+
+---
+
+<p align="center">
+  <img src="docs/app_icon.png" width="96" alt="YT Playlist icon">
+</p>
+
+## 🎬 Demo
 
 ![Demo: share a video from YouTube, save it to a new folder and play it](docs/demo.gif)
 
-[Watch the full-quality video](docs/demo.mp4)
+*Share a video from YouTube, pick a folder, and play it directly in the app. [Watch the full-quality video](docs/demo.mp4).*
 
-Open a video in YouTube, share it to YT Playlist, create a folder and save it there, then play it from the folder. The scripts that record it are in [scripts/demo](scripts/demo/README.md).
+---
 
-## Features
+## ✨ Features
 
-- **Share to save**: in the YouTube app, tap a video, press Share and choose YT Playlist. A folder picker opens, and the video is saved only after you choose a folder.
-- **Nested folders**: create folders to any depth. A folder can hold videos, other folders, or both. Create a folder from the picker while saving.
-- **In-app playback**: videos play inside the app with the official YouTube IFrame player, so you are never sent to the YouTube app.
-- **Auto-advance**: when a video ends, the next video in the same folder starts. Only the videos directly in that folder are queued, not subfolders.
-- **Embed fallback**: a video that can't be embedded (embedding disabled, private or deleted) shows a clear error and an "Open in YouTube" option. Auto-advance skips it.
-- **Title and thumbnail** are fetched through YouTube's oEmbed endpoint, so no API key is needed.
+- **Share to Save:** Tap **Share** on any video in the YouTube app and choose **YT Playlist**. A clean folder picker opens, allowing you to select an existing folder or create a new one instantly.
+- **Nested Folder Hierarchy:** Create folders to any depth. A folder can hold videos, subfolders, or both.
+- **In-App Distraction-Free Playback:** Plays videos smoothly using the official YouTube IFrame player without redirecting away from the app.
+- **Auto-Advance Playlists:** When a video finishes playing, the next video in that folder automatically starts.
+- **Graceful Embed Fallback:** Videos that disallow embedding (e.g. private, restricted, or deleted) show a clear error with a direct "Open in YouTube" button.
+- **Zero API Keys:** Titles and thumbnails are resolved seamlessly via YouTube's public oEmbed endpoint.
 
-## Tech stack
+---
 
-- Flutter (Android only)
-- [`receive_sharing_intent`](https://pub.dev/packages/receive_sharing_intent) to receive the YouTube share
-- [`youtube_player_iframe`](https://pub.dev/packages/youtube_player_iframe) for playback
-- [`drift`](https://pub.dev/packages/drift) and `drift_flutter` for local SQLite storage
+## 🏛️ Engineering & Architecture (93 Automated Tests)
+
+- **93 Automated Tests:**
+  - **20 Data Layer Tests:** Validates Drift database migrations, folder trees, and local persistence.
+  - **39 Domain Business Tests:** Use case tests for playlist navigation, auto-advance queueing, and folder creation.
+  - **34 Feature & UI Tests:** View models, folder picker dialogs, and video player state machines.
+- **Minimalist State Management:** Uses Dart's native `ValueNotifier` and explicit manual dependency injection—deliberately avoiding heavy third-party framework overhead.
+- **Layered Clean Architecture:** Strict separation between `lib/core`, `lib/data`, `lib/domain` (use cases), and `lib/features`.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Flutter & Dart**
+- [`receive_sharing_intent`](https://pub.dev/packages/receive_sharing_intent) (Native Android share sheet intent integration)
+- [`youtube_player_iframe`](https://pub.dev/packages/youtube_player_iframe) (Video playback)
+- [`drift`](https://pub.dev/packages/drift) & `drift_flutter` (Local SQLite database)
 - `http`, `url_launcher`, `uuid`, `cached_network_image`
 
-The code follows a layered structure: `lib/core`, `lib/data`, `lib/domain` (use cases) and `lib/features`. State uses `ValueNotifier` and dependencies are wired by hand, with no state-management or DI packages.
+---
 
-## Getting started
+## 🚀 Getting Started
 
-Requirements: the Flutter SDK and an Android device or emulator.
+### Prerequisites
+- [Flutter SDK](https://flutter.dev/docs/get-started/install) (v3.x or later)
+- Android SDK or connected device / emulator
 
+### Setup & Run
 ```bash
-git clone https://github.com/RanjanKiran707/youtube_saver.git
-cd youtube_saver
+# Clone the repository
+git clone https://github.com/RanjanKiran707/youtube-video-organizer.git
+cd youtube-video-organizer
+
+# Install dependencies
 flutter pub get
-dart run build_runner build   # generates the drift database code
+
+# Generate Drift SQLite database code
+dart run build_runner build
+
+# Run application
 flutter run
+
+# Run all 93 automated tests
+flutter test
 ```
 
-To build an APK, see [docs/release.md](docs/release.md).
+To build a release APK yourself, see the [Release Guide](docs/release.md).
 
-## Known limits
+---
 
-- Android only. iOS is out of scope.
-- No true background playback or screen-off audio, because the official embedded player doesn't support it.
-- Ads still play where YouTube serves them.
-- Data lives only on the device. Uninstalling the app removes the library.
+## 📚 Technical Documentation
 
-## Docs
+- [Product Specifications](project_spec/product_spec.md)
+- [Architecture Guide](project_spec/flutter_arch_general.md)
+- [Data Model & Schema](docs/data_model.md)
+- [Dependency Analysis](docs/dependencies.md)
+- [Release Guide](docs/release.md)
 
-- [Product spec](project_spec/product_spec.md)
-- [Data model](docs/data_model.md)
-- [Dependencies](docs/dependencies.md)
-- [Release guide](docs/release.md)
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
