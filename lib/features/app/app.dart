@@ -12,6 +12,7 @@ import 'package:youtube_saver/features/app/share_source.dart';
 import 'package:youtube_saver/features/folder_picker/folder_picker_view.dart';
 import 'package:youtube_saver/features/folder_picker/folder_picker_view_model.dart';
 import 'package:youtube_saver/features/library/library_view.dart';
+import 'package:youtube_saver/features/web_showcase/web_responsive_shell.dart';
 
 class YoutubeSaverApp extends StatefulWidget {
   final ShareSource shareSource;
@@ -111,7 +112,7 @@ class _YoutubeSaverAppState extends State<YoutubeSaverApp> {
                 ? Brightness.light
                 : Brightness.dark,
           ),
-          child: child!,
+          child: WebResponsiveShell(child: child!),
         );
       },
       home: const LibraryView(),
